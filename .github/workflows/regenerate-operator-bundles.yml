@@ -113,9 +113,22 @@ jobs:
           curl -X POST -H "Content-type: application/json" --data "{
             \"text\": \"$SLACK_MESSAGE\"
           }" $SLACK_WEBHOOK_URL
-      
+  
+      - name: Detect Changes in Charts
+        id: changes
+        if: ${{ always() }}
+        run: |
+          changes=false
+          echo "::group::Detect Changes in Charts"
+          if ! git diff --exit-code; then
+            changes=true
+          fi
+          echo "::endgroup::"
+          echo "changes=${changes}" >> $GITHUB_OUTPUT
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
+        if: ${{ always() && steps.changes.outputs.changes == 'true' }}
         with:
           signoff: true
           branch: "regenerate-operator-bundles-${{ matrix.branch }}"
